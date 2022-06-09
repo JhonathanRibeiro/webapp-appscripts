@@ -1,0 +1,120 @@
+<script>
+    //Impede o comportamento padrão de envio de formulário, evitando assim recarregar a página a cada submissão.
+    function preventFormSubmit() {
+      var forms = document.querySelectorAll('form');
+      for (var i = 0; i < forms.length; i++) {
+        forms[i].addEventListener('submit', function(event) {
+        event.preventDefault();
+        });
+      }
+    }
+    //Adicoinando a funcao [functionInit] ao carregar a página...
+    window.addEventListener("load", functionInit, true); 
+    
+    //INICIALIZANDO FUNÇÕES [ONLOAD]
+    function functionInit(){  
+      preventFormSubmit();
+      getLastTenRows();
+    };      
+    
+    //TRATANDO A SUBMISSÃO DO FORMULÁRIO
+    function handleFormSubmit(formObject) {
+      google.script.run.withSuccessHandler(createTable).processForm(formObject);
+      document.getElementById("myForm").reset(); //Limpando os dados após o registro.
+    }
+    
+    //OBTEM AS ÚLTIMAS 10 LINHAS
+    /*Caso existam mais de 10 registros, irá exibir os 10 primeiros ao carregar
+    * a página, caso deseje visualizar o restante basta uma nova pesquisa.*/
+    function getLastTenRows (){
+     google.script.run.withSuccessHandler(createTable).getLastTenRows();
+    }
+    
+    //BUSCA TODOS OS DADOS
+    function getAllData(){
+      google.script.run.withSuccessHandler(createTable).getAllData();
+    }
+    
+    //GERA A TABELA DE DADOS (DataTable.html)
+    function createTable(dataArray) {
+      if(dataArray){
+        var result = "<table class='table table-sm' style='font-size:0.8em'>"+
+                     "<thead style='white-space: nowrap'>"+
+                       "<tr>"+ //Altera os títulos da tabela para corresponder com o Google Sheet
+                        "<th scope='col'>Excluir</th>"+
+                        "<th scope='col'>Editar</th>"+
+                        "<th scope='col'>ID</th>"+
+                        "<th scope='col'>Nome</th>"+
+                        "<th scope='col'>Genero</th>"+
+                        "<th scope='col'>Data Nascimento</th>"+
+                        "<th scope='col'>Email</th>"+
+                        "<th scope='col'>Telefone</th>"+
+                        "<th scope='col'>Nacionalidade</th>"+
+                      "</tr>"+
+                    "</thead>";
+        for(var i=0; i<dataArray.length; i++) {
+            result += "<tr>";
+            result += "<td><button type='button' class='btn btn-danger btn-xs deleteBtn' onclick='deleteData(this);'>Excluir</button></td>";
+            
+            result += "<td><button type='button' class='btn btn-warning btn-xs editBtn' onclick='editData(this);'>Editar</button></td>";
+            for(var j=0; j<dataArray[i].length; j++){
+                result += "<td>"+dataArray[i][j]+"</td>";
+            }
+            result += "</tr>";
+        }
+        result += "</table>";
+        var div = document.getElementById('dataTable');
+        div.innerHTML = result;
+        document.getElementById("message").innerHTML = "";
+      }else{
+        var div = document.getElementById('dataTable');
+        div.innerHTML = "Não foi possível recuparar os dados!";
+      }
+    }
+  
+    //DELETAR DADOS
+    function deleteData(el) {
+      var result = confirm("Tem certeza que deseja deletar o registro?");
+      if (result) {
+        var recordId = el.parentNode.parentNode.cells[2].innerHTML;
+        google.script.run.withSuccessHandler(createTable).deleteData(recordId);
+      }
+    }
+    
+    //EDITAR DADOS
+    function editData(el){
+      var recordId = el.parentNode.parentNode.cells[2].innerHTML;
+      google.script.run.withSuccessHandler(populateForm).getRecordById(recordId);
+    }
+  
+    //POPULAR FORMULARIO
+    function populateForm(records){
+      document.getElementById('RecId').value = records[0][0];
+      document.getElementById('name').value = records[0][1];
+      document.getElementById(records[0][2]).checked = true;
+      document.getElementById('dateOfBirth').value = records[0][3];
+      document.getElementById('email').value = records[0][4];
+      document.getElementById('phone').value = records[0][5];
+      document.getElementById("country").value = records[0][6];
+      document.getElementById("message").innerHTML = "<div class='alert alert-warning' role='alert'>Atualização de registro [ID: "+records[0][0]+"]</div>";
+    }
+    
+    //RECUPERAR DADOS DA FOLHA DO GOOGLE PARA SELEÇÃO DO PAÍS
+    function createCountryDropdown() {
+        //ENVIE O INTERVALO DE DADOS PARA O DROPDOWN COMO O PARÂMETRO
+        google.script.run.withSuccessHandler(countryDropDown).getDropdownList("Helpers!A1:A195");
+    }
+    
+    //DROPDOWNS DE PAÍSES
+    function countryDropDown(values) {
+      var list = document.getElementById('country');   
+      for (var i = 0; i < values.length; i++) {
+        var option = document.createElement("option");
+        option.value = values[i];
+        option.text = values[i];
+        list.appendChild(option);
+      }
+    }
+  </script>
+  
+  
